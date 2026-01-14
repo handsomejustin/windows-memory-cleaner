@@ -1,0 +1,6 @@
+{
+  "warning_threshold": 85,
+  "auto_clean": false,
+  "auto_clean_threshold": 80,
+  "refresh_interval": 5
+}
