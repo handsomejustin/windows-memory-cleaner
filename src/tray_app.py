@@ -152,7 +152,7 @@ class MemoryTrayApp:
         else:
             for log in logs[-5:]:
                 timestamp = log['timestamp'][:19]
-                print(f"  [{timestamp}] {log['before_percent']}% -> {log['after_percent']}%, 释放 {log['freed']}GB")
+                print(f"  [{timestamp}] {log['before_percent']}% -> {log['after_percent']}%, 释放 {log['freed_gb']}GB")
         print("=" * 40)
 
         # 尝试显示系统通知（如果 icon 可用）
