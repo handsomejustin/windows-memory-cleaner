@@ -141,10 +141,6 @@ class MemoryTrayApp:
         """显示内存状态（使用通知消息，避免与 tkinter 冲突）"""
         mem_info = self.monitor.get_memory_info()
 
-        # 使用系统通知显示状态
-        message = f"内存使用: {mem_info['used']}/{mem_info['total']} GB ({mem_info['percent']}%)"
-        self.icon.notify(message, title="内存清理工具")
-
         # 同时在控制台输出详细信息
         print(f"\n=== 内存状态 ===")
         print(f"已用: {mem_info['used']} GB / {mem_info['total']} GB ({mem_info['percent']}%)")
@@ -158,6 +154,14 @@ class MemoryTrayApp:
                 timestamp = log['timestamp'][:19]
                 print(f"  [{timestamp}] {log['before_percent']}% -> {log['after_percent']}%, 释放 {log['freed']}GB")
         print("=" * 40)
+
+        # 尝试显示系统通知（如果 icon 可用）
+        if icon is not None:
+            try:
+                message = f"内存使用: {mem_info['used']}/{mem_info['total']} GB ({mem_info['percent']}%)"
+                icon.notify(message, title="内存清理工具")
+            except Exception:
+                pass  # 通知失败不影响主要功能
 
 if __name__ == "__main__":
     app = MemoryTrayApp()
