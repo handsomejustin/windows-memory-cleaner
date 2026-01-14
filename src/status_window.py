@@ -1,4 +1,10 @@
 # src/status_window.py
+import sys
+import os
+
+# Add parent directory to path for imports to work when run directly
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import tkinter as tk
 from tkinter import ttk, scrolledtext
 from src.memory_monitor import MemoryMonitor
