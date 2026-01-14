@@ -44,5 +44,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='icons/app.ico',  # 需要准备图标文件
+    # icon='icons/app.ico',  # 图标文件暂未准备，可后续添加
 )
