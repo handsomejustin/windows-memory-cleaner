@@ -11,7 +11,6 @@ from src.memory_monitor import MemoryMonitor
 from src.memory_cleaner import MemoryCleaner
 from src.config import ConfigManager
 from src.log_manager import LogManager
-from src.status_window import StatusWindow
 
 
 class MemoryTrayApp:
@@ -26,7 +25,6 @@ class MemoryTrayApp:
         self.logger = LogManager()
         self.running = False
         self.icon = None
-        self.status_window = None
 
     def create_icon(self, color="green", mem_info=None):
         """创建托盘图标
@@ -118,7 +116,6 @@ class MemoryTrayApp:
     def run(self):
         """启动托盘应用"""
         self.running = True
-        self.status_window = StatusWindow(self.on_clean_with_update)
 
         # 创建菜单
         menu = pystray.Menu(
@@ -141,21 +138,26 @@ class MemoryTrayApp:
         self.icon.run()
 
     def on_show_status(self, icon=None, item=None):
-        """显示状态窗口"""
-        if self.status_window:
-            self.status_window.show()
+        """显示内存状态（使用通知消息，避免与 tkinter 冲突）"""
+        mem_info = self.monitor.get_memory_info()
 
-    def on_clean_with_update(self):
-        """清理并返回结果（供状态窗口调用）"""
-        result = self.cleaner.clean()
-        if result.get("success"):
-            self.logger.add_clean_log(
-                before_percent=result["before"]["percent"],
-                after_percent=result["after"]["percent"],
-                freed_gb=result.get("freed", 0)
-            )
-            self.update_icon_state()
-        return result
+        # 使用系统通知显示状态
+        message = f"内存使用: {mem_info['used']}/{mem_info['total']} GB ({mem_info['percent']}%)"
+        self.icon.notify(message, title="内存清理工具")
+
+        # 同时在控制台输出详细信息
+        print(f"\n=== 内存状态 ===")
+        print(f"已用: {mem_info['used']} GB / {mem_info['total']} GB ({mem_info['percent']}%)")
+        print(f"可用: {mem_info['available']} GB")
+        print(f"\n最近清理记录:")
+        logs = self.logger.get_recent_logs(limit=5)
+        if not logs:
+            print("  暂无清理记录")
+        else:
+            for log in logs[-5:]:
+                timestamp = log['timestamp'][:19]
+                print(f"  [{timestamp}] {log['before_percent']}% -> {log['after_percent']}%, 释放 {log['freed']}GB")
+        print("=" * 40)
 
 if __name__ == "__main__":
     app = MemoryTrayApp()
