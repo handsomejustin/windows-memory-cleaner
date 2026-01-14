@@ -6,6 +6,7 @@ from src.memory_monitor import MemoryMonitor
 from src.memory_cleaner import MemoryCleaner
 from src.config import ConfigManager
 from src.log_manager import LogManager
+from src.status_window import StatusWindow
 
 
 class MemoryTrayApp:
@@ -20,6 +21,7 @@ class MemoryTrayApp:
         self.logger = LogManager()
         self.running = False
         self.icon = None
+        self.status_window = None
 
     def create_icon(self, color="green", mem_info=None):
         """创建托盘图标
@@ -111,6 +113,7 @@ class MemoryTrayApp:
     def run(self):
         """启动托盘应用"""
         self.running = True
+        self.status_window = StatusWindow(self.on_clean_with_update)
 
         # 创建菜单
         menu = pystray.Menu(
@@ -134,11 +137,20 @@ class MemoryTrayApp:
 
     def on_show_status(self, icon=None, item=None):
         """显示状态窗口"""
-        print(self.update_tooltip())
-        logs = self.logger.get_recent_logs(limit=5)
-        print("\n最近清理记录:")
-        for log in logs[-5:]:
-            print(f"  {log['timestamp']}: {log['before_percent']}% -> {log['after_percent']}%, 释放 {log['freed']}GB")
+        if self.status_window:
+            self.status_window.show()
+
+    def on_clean_with_update(self):
+        """清理并返回结果（供状态窗口调用）"""
+        result = self.cleaner.clean()
+        if result["success"]:
+            self.logger.add_clean_log(
+                before_percent=result["before"]["percent"],
+                after_percent=result["after"]["percent"],
+                freed_gb=result["freed"]
+            )
+            self.update_icon_state()
+        return result
 
 if __name__ == "__main__":
     app = MemoryTrayApp()
