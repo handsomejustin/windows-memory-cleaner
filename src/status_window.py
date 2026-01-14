@@ -12,12 +12,21 @@ class StatusWindow:
         self.logger = LogManager()
         self.window = None
         self.updating = False
+        self.timer_id = None  # Track timer for cancellation
 
     def show(self):
         """显示状态窗口"""
         if self.window and self.window.winfo_exists():
             self.window.lift()
             return
+
+        # Destroy existing window if it exists but doesn't have valid window info
+        if self.window is not None:
+            try:
+                self.window.destroy()
+            except Exception:
+                pass
+            self.window = None
 
         self.window = tk.Tk()
         self.window.title("内存清理工具")
@@ -35,8 +44,15 @@ class StatusWindow:
 
     def hide(self):
         """隐藏窗口"""
+        # Cancel timer to prevent memory leak
+        self._cancel_timer()
+
         if self.window:
-            self.window.withdraw()
+            try:
+                self.window.withdraw()
+            except Exception:
+                # Window may already be destroyed
+                pass
 
     def _create_widgets(self):
         """创建界面组件"""
@@ -94,19 +110,24 @@ class StatusWindow:
 
     def _update_display(self):
         """更新显示内容"""
-        # 获取内存信息
-        mem_info = self.monitor.get_memory_info()
+        try:
+            # 获取内存信息
+            mem_info = self.monitor.get_memory_info()
 
-        # 更新进度条
-        self.progress_var.set(mem_info["percent"])
+            # 更新进度条
+            self.progress_var.set(mem_info["percent"])
 
-        # 更新信息标签
-        self.info_label.config(
-            text=f"已用: {mem_info['used']} GB / {mem_info['total']} GB ({mem_info['percent']}%)"
-        )
+            # 更新信息标签
+            self.info_label.config(
+                text=f"已用: {mem_info['used']} GB / {mem_info['total']} GB ({mem_info['percent']}%)"
+            )
 
-        # 更新日志
-        self._update_logs()
+            # 更新日志
+            self._update_logs()
+        except Exception as e:
+            # Log error but don't crash the GUI
+            print(f"Error updating display: {e}")
+            pass
 
     def _update_logs(self):
         """更新日志显示"""
@@ -126,11 +147,34 @@ class StatusWindow:
 
     def _on_clean(self):
         """清理按钮回调"""
-        result = self.on_clean_callback()
-        self._update_display()
+        try:
+            result = self.on_clean_callback()
+            self._update_display()
+        except Exception as e:
+            # Log error but don't crash the GUI
+            print(f"Error during clean operation: {e}")
+            # Still update display even if clean failed
+            try:
+                self._update_display()
+            except Exception:
+                pass
 
     def _start_update_timer(self):
         """启动定时更新"""
+        # Cancel any existing timer first
+        self._cancel_timer()
+
         if self.window and self.window.winfo_exists():
             self._update_display()
-            self.window.after(3000, self._start_update_timer)  # 每3秒更新
+            # Store timer ID for later cancellation
+            self.timer_id = self.window.after(3000, self._start_update_timer)  # 每3秒更新
+
+    def _cancel_timer(self):
+        """取消定时器"""
+        if self.timer_id is not None and self.window is not None:
+            try:
+                self.window.after_cancel(self.timer_id)
+            except Exception:
+                pass
+            finally:
+                self.timer_id = None
