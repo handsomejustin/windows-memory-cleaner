@@ -23,7 +23,13 @@ class StatusWindow:
     def show(self):
         """显示状态窗口"""
         if self.window and self.window.winfo_exists():
-            self.window.lift()
+            try:
+                self.window.deiconify()
+                self.window.lift()
+            except Exception:
+                # Window might be destroyed, recreate it
+                self.window = None
+                return self._create_new_window()
             return
 
         # Destroy existing window if it exists but doesn't have valid window info
@@ -34,6 +40,10 @@ class StatusWindow:
                 pass
             self.window = None
 
+        return self._create_new_window()
+
+    def _create_new_window(self):
+        """创建新窗口"""
         self.window = tk.Tk()
         self.window.title("内存清理工具")
         self.window.geometry("400x350")
@@ -48,6 +58,12 @@ class StatusWindow:
         # 启动自动刷新
         self._start_update_timer()
 
+        # 立即更新窗口，但不启动主循环
+        try:
+            self.window.update()
+        except Exception:
+            pass
+
     def hide(self):
         """隐藏窗口"""
         # Cancel timer to prevent memory leak
@@ -59,6 +75,8 @@ class StatusWindow:
             except Exception:
                 # Window may already be destroyed
                 pass
+            # 重新创建窗口实例，避免线程问题
+            self.window = None
 
     def _create_widgets(self):
         """创建界面组件"""

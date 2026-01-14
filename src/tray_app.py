@@ -148,11 +148,11 @@ class MemoryTrayApp:
     def on_clean_with_update(self):
         """清理并返回结果（供状态窗口调用）"""
         result = self.cleaner.clean()
-        if result["success"]:
+        if result.get("success"):
             self.logger.add_clean_log(
                 before_percent=result["before"]["percent"],
                 after_percent=result["after"]["percent"],
-                freed_gb=result["freed"]
+                freed_gb=result.get("freed", 0)
             )
             self.update_icon_state()
         return result
