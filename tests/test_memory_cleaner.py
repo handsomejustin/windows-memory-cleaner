@@ -8,7 +8,8 @@ def test_clean_system_cache():
     cleaner = MemoryCleaner()
 
     # 模拟 Windows API 调用成功
-    with patch('ctypes.windll.kernel32.SetProcessWorkingSetSize') as mock_api:
+    # Patch the actual location where it's used in the code
+    with patch('src.memory_cleaner.ctypes.windll.kernel32.SetProcessWorkingSetSize') as mock_api:
         mock_api.return_value = 1  # 返回成功
 
         result = cleaner.clean()
@@ -25,7 +26,8 @@ def test_clean_with_api_error():
     cleaner = MemoryCleaner()
 
     # 模拟 API 抛出异常
-    with patch('ctypes.windll.kernel32.SetProcessWorkingSetSize') as mock_api:
+    # Patch the actual location where it's used in the code
+    with patch('src.memory_cleaner.ctypes.windll.kernel32.SetProcessWorkingSetSize') as mock_api:
         mock_api.side_effect = Exception("API Error")
 
         result = cleaner.clean()

@@ -1,11 +1,26 @@
 # src/memory_cleaner.py
+import sys
 import ctypes
 from src.memory_monitor import MemoryMonitor
 
+
 class MemoryCleaner:
-    def __init__(self):
-        self.monitor = MemoryMonitor()
+    def __init__(self, monitor=None):
+        # Platform guard - only Windows is supported
+        if sys.platform != 'win32':
+            raise RuntimeError("MemoryCleaner only supports Windows platform")
+
+        # Accept monitor as parameter for loose coupling, create lazily if not provided
+        self._monitor = monitor
         self._kernel32 = ctypes.windll.kernel32
+
+    @property
+    def monitor(self):
+        """Lazy initialization of monitor"""
+        if self._monitor is None:
+            from src.memory_monitor import MemoryMonitor
+            self._monitor = MemoryMonitor()
+        return self._monitor
 
     def clean(self):
         """
