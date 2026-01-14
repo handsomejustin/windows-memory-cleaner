@@ -1,107 +1,59 @@
-# Windows Memory Cleaner
+# Windows 内存清理工具
 
-A system tray application for Windows that monitors and cleans system memory cache to improve system performance.
+一个简洁的 Windows 托盘常驻工具，用于清理系统内存缓存。
 
-## Overview
+## 功能特点
 
-Windows Memory Cleaner is a lightweight utility that runs in the system tray and provides real-time monitoring of memory usage. It allows users to manually clean memory caches or configure automatic cleaning based on memory usage thresholds.
+- 托盘常驻，不占用任务栏空间
+- 实时显示内存使用状态
+- 一键清理系统缓存
+- 保留清理历史记录
+- 完全本地运行，无网络请求
 
-## Features
+## 使用方法
 
-- Real-time memory usage monitoring in the system tray
-- Manual memory cache cleaning with a single click
-- Configurable warning thresholds for memory usage
-- Optional automatic memory cleaning when usage exceeds threshold
-- Customizable refresh intervals for memory monitoring
-- Visual indicators for memory usage levels
-- Logging system for tracking cleaning operations
+### 从源码运行
 
-## Installation
-
-### Prerequisites
-
-- Windows 10 or later
-- Python 3.8 or higher
-
-### Setup
-
-1. Clone or download this repository
-2. Create a virtual environment (recommended):
-   ```bash
-   python -m venv venv
-   venv\Scripts\activate  # On Windows
-   ```
-3. Install the required dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-## Dependencies
-
-- `pystray` (>=0.19.5) - System tray icon functionality
-- `psutil` (>=5.9.5) - System and process utilities
-- `pywin32` (>=305) - Windows-specific API access
-
-## Usage
-
-### Starting the Application
-
-Run the application using Python:
 ```bash
-python -m src
+pip install -r requirements.txt
+python main.py
 ```
 
-The application will appear in the system tray with a memory usage indicator.
+### 使用打包版本
 
-### System Tray Menu
+直接运行 `clean_mem.exe` 即可。
 
-Right-click the system tray icon to access the following options:
+### 打包
 
-- **Show Memory Info** - Display current memory usage statistics
-- **Clean Memory** - Manually trigger memory cache cleaning
-- **Settings** - Configure warning thresholds, auto-clean settings, and refresh intervals
-- **Exit** - Close the application
+```bash
+pip install pyinstaller
+pyinstaller clean_mem.spec
+```
 
-## Configuration
+打包后的可执行文件位于 `dist/clean_mem.exe`。
 
-The application can be configured through the `config.json` file:
+## 配置
+
+编辑 `config.json` 可以自定义配置：
 
 ```json
 {
-  "warning_threshold": 85,
-  "auto_clean": false,
-  "auto_clean_threshold": 80,
-  "refresh_interval": 5
+  "warning_threshold": 85,      // 警告阈值
+  "auto_clean": false,           // 自动清理（未实现）
+  "auto_clean_threshold": 80,    // 自动清理阈值
+  "refresh_interval": 5          // 刷新间隔（秒）
 }
 ```
 
-### Configuration Options
+## 技术栈
 
-- `warning_threshold` (integer, 0-100): Memory usage percentage that triggers a warning (default: 85)
-- `auto_clean` (boolean): Enable automatic memory cleaning (default: false)
-- `auto_clean_threshold` (integer, 0-100): Memory usage percentage that triggers auto-cleaning (default: 80)
-- `refresh_interval` (integer): Seconds between memory usage updates (default: 5)
+- Python 3.8+
+- pystray - 托盘图标
+- psutil - 系统信息
+- pywin32 - Windows API
+- tkinter - 状态窗口
+- Pillow - 图标绘制
 
-## Project Structure
+## 许可
 
-```
-clear_mem/
-├── src/              # Application source code
-├── icons/            # Application icons
-├── logs/             # Application logs (runtime)
-├── docs/             # Documentation
-├── config.json       # Configuration file
-└── requirements.txt  # Python dependencies
-```
-
-## Security Considerations
-
-Memory cleaning operations require appropriate system permissions. The application uses Windows API functions through `pywin32` to perform memory operations safely.
-
-## License
-
-This project is provided as-is for educational and utility purposes.
-
-## Version
-
-Current version: 0.1.0
+MIT License
