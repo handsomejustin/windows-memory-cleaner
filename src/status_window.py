@@ -55,14 +55,8 @@ class StatusWindow:
         # 关闭窗口时隐藏而非退出
         self.window.protocol("WM_DELETE_WINDOW", self.hide)
 
-        # 启动自动刷新
-        self._start_update_timer()
-
-        # 立即更新窗口，但不启动主循环
-        try:
-            self.window.update()
-        except Exception:
-            pass
+        # 注意：不启动自动更新定时器，避免与 pystray 事件循环冲突
+        # 用户可以点击"刷新"按钮或重新打开窗口来更新显示
 
     def hide(self):
         """隐藏窗口"""
@@ -111,13 +105,25 @@ class StatusWindow:
         )
         self.info_label.pack(pady=5)
 
+        # 按钮框架
+        btn_frame = tk.Frame(self.window)
+        btn_frame.pack(pady=10)
+
         # 清理按钮
         clean_btn = ttk.Button(
-            self.window,
+            btn_frame,
             text="立即清理内存",
             command=self._on_clean
         )
-        clean_btn.pack(pady=10)
+        clean_btn.pack(side="left", padx=5)
+
+        # 刷新按钮
+        refresh_btn = ttk.Button(
+            btn_frame,
+            text="刷新",
+            command=self._update_display
+        )
+        refresh_btn.pack(side="left", padx=5)
 
         # 最近记录框架
         log_frame = ttk.LabelFrame(self.window, text="最近清理记录", padding=10)
