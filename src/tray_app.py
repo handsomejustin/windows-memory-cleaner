@@ -1,0 +1,117 @@
+# src/tray_app.py
+import pystray
+from PIL import Image, ImageDraw
+from src.memory_monitor import MemoryMonitor
+from src.memory_cleaner import MemoryCleaner
+from src.config import ConfigManager
+from src.log_manager import LogManager
+
+class MemoryTrayApp:
+    def __init__(self):
+        self.config = ConfigManager()
+        self.monitor = MemoryMonitor()
+        self.cleaner = MemoryCleaner()
+        self.logger = LogManager()
+        self.running = False
+
+    def create_icon(self, color="green"):
+        """创建托盘图标"""
+        # 创建一个简单的内存条图标
+        width, height = 64, 64
+        image = Image.new('RGB', (width, height), color='white')
+        draw = ImageDraw.Draw(image)
+
+        # 绘制内存条
+        colors = {
+            "green": (0, 200, 0),
+            "yellow": (255, 200, 0),
+            "red": (255, 0, 0)
+        }
+        fill_color = colors.get(color, (0, 200, 0))
+
+        # 绘制外框
+        draw.rectangle([8, 16, 56, 48], outline=(100, 100, 100), width=2)
+
+        # 绘制内存填充
+        mem_info = self.monitor.get_memory_info()
+        fill_height = int(28 * mem_info["percent"] / 100)
+        if fill_height > 0:
+            draw.rectangle([10, 47 - fill_height, 54, 46], fill=fill_color)
+
+        return image
+
+    def get_icon_color(self, percent):
+        """根据内存使用率返回图标颜色"""
+        if percent < 70:
+            return "green"
+        elif percent < 85:
+            return "yellow"
+        else:
+            return "red"
+
+    def update_tooltip(self):
+        """更新托盘图标的悬浮提示"""
+        mem_info = self.monitor.get_memory_info()
+        return f"内存: {mem_info['used']}/{mem_info['total']}GB ({mem_info['percent']}%)"
+
+    def on_clean(self, icon=None, item=None):
+        """清理内存回调"""
+        result = self.cleaner.clean()
+        if result["success"]:
+            self.logger.add_clean_log(
+                before_percent=result["before"]["percent"],
+                after_percent=result["after"]["percent"],
+                freed_gb=result["freed"]
+            )
+            print(f"清理成功: 释放 {result['freed']}GB")
+        else:
+            print(f"清理失败: {result.get('error', '未知错误')}")
+        self.update_icon_state()
+
+    def on_quit(self, icon=None, item=None):
+        """退出回调"""
+        self.running = False
+        icon.stop()
+
+    def update_icon_state(self):
+        """更新图标状态（颜色和提示）"""
+        mem_info = self.monitor.get_memory_info()
+        color = self.get_icon_color(mem_info["percent"])
+        self.icon.icon = self.create_icon(color)
+        self.icon.title = self.update_tooltip()
+
+    def run(self):
+        """启动托盘应用"""
+        self.running = True
+
+        # 创建菜单
+        menu = pystray.Menu(
+            pystray.MenuItem("显示内存状态", self.on_show_status),
+            pystray.MenuItem("立即清理内存", self.on_clean),
+            pystray.MenuItem("退出", self.on_quit)
+        )
+
+        # 创建图标
+        mem_info = self.monitor.get_memory_info()
+        initial_color = self.get_icon_color(mem_info["percent"])
+        self.icon = pystray.Icon(
+            "memory_cleaner",
+            self.create_icon(initial_color),
+            menu=menu,
+            title=self.update_tooltip()
+        )
+
+        # 启动图标
+        self.icon.run()
+
+    def on_show_status(self, icon=None, item=None):
+        """显示状态窗口"""
+        print(self.update_tooltip())
+        logs = self.logger.get_recent_logs(limit=5)
+        print("\n最近清理记录:")
+        for log in logs[-5:]:
+            print(f"  {log['timestamp']}: {log['before_percent']}% -> {log['after_percent']}%, 释放 {log['freed']}GB")
+
+if __name__ == "__main__":
+    app = MemoryTrayApp()
+    app.run()
