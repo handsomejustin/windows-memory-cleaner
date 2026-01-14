@@ -1,4 +1,5 @@
 # src/tray_app.py
+import sys
 import pystray
 from PIL import Image, ImageDraw
 from src.memory_monitor import MemoryMonitor
@@ -6,39 +7,60 @@ from src.memory_cleaner import MemoryCleaner
 from src.config import ConfigManager
 from src.log_manager import LogManager
 
+
 class MemoryTrayApp:
     def __init__(self):
+        # Platform guard - only Windows is supported
+        if sys.platform != 'win32':
+            raise RuntimeError("MemoryTrayApp only supports Windows platform")
+
         self.config = ConfigManager()
         self.monitor = MemoryMonitor()
         self.cleaner = MemoryCleaner()
         self.logger = LogManager()
         self.running = False
+        self.icon = None
 
-    def create_icon(self, color="green"):
-        """创建托盘图标"""
-        # 创建一个简单的内存条图标
-        width, height = 64, 64
-        image = Image.new('RGB', (width, height), color='white')
-        draw = ImageDraw.Draw(image)
+    def create_icon(self, color="green", mem_info=None):
+        """创建托盘图标
 
-        # 绘制内存条
-        colors = {
-            "green": (0, 200, 0),
-            "yellow": (255, 200, 0),
-            "red": (255, 0, 0)
-        }
-        fill_color = colors.get(color, (0, 200, 0))
+        Args:
+            color: Icon color (green/yellow/red)
+            mem_info: Pre-fetched memory info dict to avoid redundant calls.
+                     If None, will fetch from monitor.
+        """
+        try:
+            # 创建一个简单的内存条图标
+            width, height = 64, 64
+            image = Image.new('RGB', (width, height), color='white')
+            draw = ImageDraw.Draw(image)
 
-        # 绘制外框
-        draw.rectangle([8, 16, 56, 48], outline=(100, 100, 100), width=2)
+            # 绘制内存条
+            colors = {
+                "green": (0, 200, 0),
+                "yellow": (255, 200, 0),
+                "red": (255, 0, 0)
+            }
+            fill_color = colors.get(color, (0, 200, 0))
 
-        # 绘制内存填充
-        mem_info = self.monitor.get_memory_info()
-        fill_height = int(28 * mem_info["percent"] / 100)
-        if fill_height > 0:
-            draw.rectangle([10, 47 - fill_height, 54, 46], fill=fill_color)
+            # 绘制外框
+            draw.rectangle([8, 16, 56, 48], outline=(100, 100, 100), width=2)
 
-        return image
+            # 绘制内存填充
+            if mem_info is None:
+                mem_info = self.monitor.get_memory_info()
+            fill_height = int(28 * mem_info["percent"] / 100)
+            if fill_height > 0:
+                draw.rectangle([10, 47 - fill_height, 54, 46], fill=fill_color)
+
+            return image
+        except Exception as e:
+            # Return a basic icon on error
+            width, height = 64, 64
+            image = Image.new('RGB', (width, height), color='white')
+            draw = ImageDraw.Draw(image)
+            draw.rectangle([8, 16, 56, 48], outline=(100, 100, 100), width=2)
+            return image
 
     def get_icon_color(self, percent):
         """根据内存使用率返回图标颜色"""
@@ -75,10 +97,16 @@ class MemoryTrayApp:
 
     def update_icon_state(self):
         """更新图标状态（颜色和提示）"""
-        mem_info = self.monitor.get_memory_info()
-        color = self.get_icon_color(mem_info["percent"])
-        self.icon.icon = self.create_icon(color)
-        self.icon.title = self.update_tooltip()
+        try:
+            mem_info = self.monitor.get_memory_info()
+            color = self.get_icon_color(mem_info["percent"])
+            # Ensure icon exists before updating
+            if self.icon is not None:
+                self.icon.icon = self.create_icon(color, mem_info=mem_info)
+                self.icon.title = self.update_tooltip()
+        except Exception as e:
+            # Silently handle update errors to avoid disrupting the tray app
+            pass
 
     def run(self):
         """启动托盘应用"""
@@ -96,7 +124,7 @@ class MemoryTrayApp:
         initial_color = self.get_icon_color(mem_info["percent"])
         self.icon = pystray.Icon(
             "memory_cleaner",
-            self.create_icon(initial_color),
+            self.create_icon(initial_color, mem_info=mem_info),
             menu=menu,
             title=self.update_tooltip()
         )
